@@ -1,10 +1,15 @@
 import { Elysia, t } from 'elysia';
-import { getUsers, getUserById, createUser, updateUser, deleteUser, registerUser } from './users.service';
+import { getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser } from './users.service';
 
 const registerSchema = t.Object({
   name: t.String({ minLength: 1 }),
   email: t.String({ format: 'email' }),
   password: t.String({ minLength: 8 }),
+});
+
+const loginSchema = t.Object({
+  email: t.String({ format: 'email' }),
+  password: t.String({ minLength: 1 }),
 });
 
 export const usersRouter = new Elysia({ prefix: '/api/users' })
@@ -25,6 +30,18 @@ export const usersRouter = new Elysia({ prefix: '/api/users' })
     }
   }, {
     body: registerSchema,
+  })
+  .post('/login', async ({ body, set }) => {
+    const { email, password } = body as { email: string; password: string };
+    try {
+      const token = await loginUser(email, password);
+      return { token };
+    } catch (error) {
+      set.status = 400;
+      return { error: (error as Error).message };
+    }
+  }, {
+    body: loginSchema,
   })
   .put('/:id', async ({ params, body }) => {
     const id = Number(params.id);
