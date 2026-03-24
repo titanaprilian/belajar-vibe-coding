@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser, getCurrentUser } from './users.service';
+import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser, getCurrentUser, updateCurrentUser } from './users.service';
 
 const registerSchema = t.Object({
   name: t.String({ minLength: 1 }),
@@ -10,6 +10,11 @@ const registerSchema = t.Object({
 const loginSchema = t.Object({
   email: t.String({ format: 'email' }),
   password: t.String({ minLength: 1 }),
+});
+
+const updateProfileSchema = t.Object({
+  name: t.String({ minLength: 1 }),
+  email: t.String({ format: 'email' }),
 });
 
 const paginationQuery = t.Object({
@@ -48,6 +53,38 @@ export const usersRouter = new Elysia({ prefix: '/api/users' })
       set.status = 401;
       return { error: 'Unauthorized' };
     }
+  })
+  .put('/me', async ({ headers, body, set }) => {
+    const authHeader = headers['authorization'];
+    
+    if (!authHeader) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
+    const token = parts[1]!;
+    const { name, email } = body as { name: string; email: string };
+    
+    try {
+      await updateCurrentUser(token, name, email);
+      return { data: 'OK' };
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      if (errorMessage === 'Unauthorized') {
+        set.status = 401;
+        return { error: 'Unauthorized' };
+      }
+      set.status = 400;
+      return { error: errorMessage };
+    }
+  }, {
+    body: updateProfileSchema,
   })
   .get('/:id', async ({ params }) => {
     const id = Number(params.id);
