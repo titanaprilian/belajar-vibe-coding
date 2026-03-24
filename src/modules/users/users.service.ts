@@ -128,3 +128,31 @@ export async function updateCurrentUser(token: string, name: string, email: stri
   
   return 'OK';
 }
+
+export async function updatePassword(token: string, oldPassword: string, newPassword: string) {
+  const session = await db.select().from(sessions).where(eq(sessions.token, token));
+  
+  if (session.length === 0) {
+    throw new Error('Unauthorized');
+  }
+  
+  const userId = session[0]!.userId;
+  
+  const userRecord = await db.select().from(users).where(eq(users.id, userId));
+  
+  if (userRecord.length === 0) {
+    throw new Error('Unauthorized');
+  }
+  
+  const user = userRecord[0]!;
+  const isValidPassword = await argon2.verify(user.password, oldPassword);
+  
+  if (!isValidPassword) {
+    throw new Error('The old password is not match');
+  }
+  
+  const hashedNewPassword = await argon2.hash(newPassword);
+  await db.update(users).set({ password: hashedNewPassword }).where(eq(users.id, userId));
+  
+  return 'OK';
+}
