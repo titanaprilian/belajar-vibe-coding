@@ -1,11 +1,11 @@
 import { defineConfig } from 'drizzle-kit';
-import { env } from 'bun';
+import 'dotenv/config';
 
 export default defineConfig({
   schema: './src/modules/**/*.schema.ts',
   out: './drizzle',
   dialect: 'mysql',
   dbCredentials: {
-    url: env.DATABASE_URL!,
+    url: process.env.DATABASE_URL!,
   },
 });
