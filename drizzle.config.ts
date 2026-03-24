@@ -1,10 +1,11 @@
 import { defineConfig } from 'drizzle-kit';
+import 'dotenv/config';
 
 export default defineConfig({
   schema: './src/modules/**/*.schema.ts',
   out: './drizzle',
   dialect: 'mysql',
   dbCredentials: {
-    url: 'mysql://root:root@localhost:3306/belajar_vibe_coding',
+    url: process.env.DATABASE_URL!,
   },
 });
