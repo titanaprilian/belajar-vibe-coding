@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser } from './users.service';
+import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser } from './users.service';
 
 const registerSchema = t.Object({
   name: t.String({ minLength: 1 }),
@@ -12,9 +12,18 @@ const loginSchema = t.Object({
   password: t.String({ minLength: 1 }),
 });
 
+const paginationQuery = t.Object({
+  page: t.Number({ minimum: 1, default: 1 }),
+  size: t.Number({ minimum: 1, maximum: 100, default: 10 }),
+});
+
 export const usersRouter = new Elysia({ prefix: '/api/users' })
-  .get('/', async () => {
-    return getUsers();
+  .get('/', async ({ query }) => {
+    const page = query.page ?? 1;
+    const size = query.size ?? 10;
+    return getUsers(page, size);
+  }, {
+    query: paginationQuery,
   })
   .get('/:id', async ({ params }) => {
     const id = Number(params.id);
