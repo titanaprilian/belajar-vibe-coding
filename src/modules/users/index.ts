@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser } from './users.service';
+import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser, getCurrentUser } from './users.service';
 
 const registerSchema = t.Object({
   name: t.String({ minLength: 1 }),
@@ -24,6 +24,30 @@ export const usersRouter = new Elysia({ prefix: '/api/users' })
     return getUsers(page, size);
   }, {
     query: paginationQuery,
+  })
+  .get('/me', async ({ headers, set }) => {
+    const authHeader = headers['authorization'];
+    
+    if (!authHeader) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
+    const token = parts[1]!;
+    
+    try {
+      const user = await getCurrentUser(token);
+      return { data: user };
+    } catch (error) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
   })
   .get('/:id', async ({ params }) => {
     const id = Number(params.id);

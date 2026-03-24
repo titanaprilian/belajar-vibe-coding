@@ -88,3 +88,24 @@ export async function loginUser(email: string, password: string): Promise<string
   
   return createSession(user.id);
 }
+
+export async function getCurrentUser(token: string) {
+  const session = await db.select().from(sessions).where(eq(sessions.token, token));
+  
+  if (session.length === 0) {
+    throw new Error('Unauthorized');
+  }
+  
+  const userRecord = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    createdAt: users.createdAt,
+  }).from(users).where(eq(users.id, session[0]!.userId));
+  
+  if (userRecord.length === 0) {
+    throw new Error('Unauthorized');
+  }
+  
+  return userRecord[0]!;
+}
