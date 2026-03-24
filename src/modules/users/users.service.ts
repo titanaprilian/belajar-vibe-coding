@@ -109,3 +109,22 @@ export async function getCurrentUser(token: string) {
   
   return userRecord[0]!;
 }
+
+export async function updateCurrentUser(token: string, name: string, email: string) {
+  const session = await db.select().from(sessions).where(eq(sessions.token, token));
+  
+  if (session.length === 0) {
+    throw new Error('Unauthorized');
+  }
+  
+  const userId = session[0]!.userId;
+  
+  const existingEmail = await db.select().from(users).where(eq(users.email, email));
+  if (existingEmail.length > 0 && existingEmail[0]!.id !== userId) {
+    throw new Error('The email should be a valid email');
+  }
+  
+  await db.update(users).set({ name, email }).where(eq(users.id, userId));
+  
+  return 'OK';
+}
