@@ -1,11 +1,10 @@
 import { defineConfig } from 'drizzle-kit';
-import { env } from 'bun';
 
 export default defineConfig({
   schema: './src/modules/**/*.schema.ts',
   out: './drizzle',
   dialect: 'mysql',
   dbCredentials: {
-    url: env.DATABASE_URL!,
+    url: 'mysql://root:root@localhost:3306/belajar_vibe_coding',
   },
 });
