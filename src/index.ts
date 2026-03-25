@@ -8,7 +8,22 @@ const app = new Elysia()
   .get('/api/health', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }, {
-    detail: { tags: ['Health'] }
+    detail: {
+      tags: ['Health'],
+      responses: {
+        200: {
+          description: 'Server is healthy',
+          content: {
+            'application/json': {
+              example: {
+                status: 'ok',
+                timestamp: '2024-01-01T00:00:00.000Z'
+              }
+            }
+          }
+        }
+      }
+    }
   })
   .use(usersRouter)
   .listen(env.PORT || 3000);

@@ -49,7 +49,36 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       query: paginationQuery,
-      detail: { tags: ["Users"] },
+      detail: {
+        tags: ["Users"],
+        responses: {
+          200: {
+            description: "Returns paginated list of users",
+            content: {
+              "application/json": {
+                example: {
+                  data: [
+                    {
+                      id: 1,
+                      name: "John Doe",
+                      email: "john@example.com",
+                      createdAt: "2024-01-01T00:00:00.000Z",
+                    },
+                  ],
+                  meta: {
+                    current_page: 1,
+                    page_size: 10,
+                    total_records: 1,
+                    total_pages: 1,
+                    next_url: null,
+                    prev_url: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   )
   .post(
@@ -71,7 +100,27 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: registerSchema,
-      detail: { tags: ["Users"] },
+      detail: {
+        tags: ["Users"],
+        responses: {
+          201: {
+            description: "User registered successfully",
+            content: {
+              "application/json": {
+                example: { data: "OK" },
+              },
+            },
+          },
+          400: {
+            description: "Email already in use",
+            content: {
+              "application/json": {
+                example: { error: "Email is already in use" },
+              },
+            },
+          },
+        },
+      },
     },
   )
   .post(
@@ -88,16 +137,67 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: loginSchema,
-      detail: { tags: ["Users"] },
+      detail: {
+        tags: ["Users"],
+        responses: {
+          200: {
+            description: "Login successful",
+            content: {
+              "application/json": {
+                example: { token: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+              },
+            },
+          },
+          400: {
+            description: "Invalid credentials",
+            content: {
+              "application/json": {
+                example: { error: "Email or password is wrong" },
+              },
+            },
+          },
+        },
+      },
     },
   )
-  .get("/me", async ({ headers }) => {
-    const token = extractToken(headers);
-    const user = await getCurrentUser(token);
-    return { data: user };
-  }, {
-    detail: { tags: ["Users"] },
-  })
+  .get(
+    "/me",
+    async ({ headers }) => {
+      const token = extractToken(headers);
+      const user = await getCurrentUser(token);
+      return { data: user };
+    },
+    {
+      detail: {
+        tags: ["Users"],
+        responses: {
+          200: {
+            description: "Returns current user",
+            content: {
+              "application/json": {
+                example: {
+                  data: {
+                    id: 1,
+                    name: "John Doe",
+                    email: "john@example.com",
+                    createdAt: "2024-01-01T00:00:00.000Z",
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                example: { error: "Unauthorized" },
+              },
+            },
+          },
+        },
+      },
+    },
+  )
   .put(
     "/me",
     async ({ headers, body, set }) => {
@@ -118,7 +218,35 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: updateProfileSchema,
-      detail: { tags: ["Users"] },
+      detail: {
+        tags: ["Users"],
+        responses: {
+          200: {
+            description: "Profile updated successfully",
+            content: {
+              "application/json": {
+                example: { data: "OK" },
+              },
+            },
+          },
+          400: {
+            description: "Email already in use by another user",
+            content: {
+              "application/json": {
+                example: { error: "The email should be a valid email" },
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                example: { error: "Unauthorized" },
+              },
+            },
+          },
+        },
+      },
     },
   )
   .put(
@@ -144,13 +272,65 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: updatePasswordSchema,
-      detail: { tags: ["Users"] },
+      detail: {
+        tags: ["Users"],
+        responses: {
+          200: {
+            description: "Password updated successfully",
+            content: {
+              "application/json": {
+                example: { data: "OK" },
+              },
+            },
+          },
+          400: {
+            description: "Old password is incorrect",
+            content: {
+              "application/json": {
+                example: { error: "The old password is not match" },
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                example: { error: "Unauthorized" },
+              },
+            },
+          },
+        },
+      },
     },
   )
-  .delete("/logout", async ({ headers }) => {
-    const token = extractToken(headers);
-    await logoutUser(token);
-    return { data: "OK" };
-  }, {
-    detail: { tags: ["Users"] },
-  });
+  .delete(
+    "/logout",
+    async ({ headers }) => {
+      const token = extractToken(headers);
+      await logoutUser(token);
+      return { data: "OK" };
+    },
+    {
+      detail: {
+        tags: ["Users"],
+        responses: {
+          200: {
+            description: "Logged out successfully",
+            content: {
+              "application/json": {
+                example: { data: "OK" },
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                example: { error: "Unauthorized" },
+              },
+            },
+          },
+        },
+      },
+    },
+  );
