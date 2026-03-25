@@ -61,6 +61,7 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
       };
       try {
         await registerUser(name, email, password);
+        set.status = 201;
         return { data: "OK" };
       } catch (error) {
         set.status = 400;
