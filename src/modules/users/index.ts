@@ -1,184 +1,166 @@
-import { Elysia, t } from 'elysia';
-import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser, getCurrentUser, updateCurrentUser, updatePassword, logoutUser } from './users.service';
+import { Elysia } from "elysia";
+import {
+  getUsers,
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  updateCurrentUser,
+  updatePassword,
+  logoutUser,
+} from "./users.service";
+import {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  updatePasswordSchema,
+  paginationQuery,
+} from "./users.validation";
 
-const registerSchema = t.Object({
-  name: t.String({ minLength: 1 }),
-  email: t.String({ format: 'email' }),
-  password: t.String({ minLength: 8 }),
-});
+export const usersRouter = new Elysia({ prefix: "/api/users" })
+  .derive(({ headers, set }) => {
+    const authHeader = headers["authorization"];
 
-const loginSchema = t.Object({
-  email: t.String({ format: 'email' }),
-  password: t.String({ minLength: 1 }),
-});
-
-const updateProfileSchema = t.Object({
-  name: t.String({ minLength: 1 }),
-  email: t.String({ format: 'email' }),
-});
-
-const updatePasswordSchema = t.Object({
-  oldPassword: t.String({ minLength: 1 }),
-  newPassword: t.String({ minLength: 8 }),
-});
-
-const paginationQuery = t.Object({
-  page: t.Number({ minimum: 1, default: 1 }),
-  size: t.Number({ minimum: 1, maximum: 100, default: 10 }),
-});
-
-export const usersRouter = new Elysia({ prefix: '/api/users' })
-  .get('/', async ({ query }) => {
-    const page = query.page ?? 1;
-    const size = query.size ?? 10;
-    return getUsers(page, size);
-  }, {
-    query: paginationQuery,
-  })
-  .get('/me', async ({ headers, set }) => {
-    const authHeader = headers['authorization'];
-    
     if (!authHeader) {
-      set.status = 401;
-      return { error: 'Unauthorized' };
+      return { error: "Unauthorized" };
     }
-    
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      set.status = 401;
-      return { error: 'Unauthorized' };
+
+    const parts = authHeader.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+      return { error: "Unauthorized" };
     }
-    
+
     const token = parts[1]!;
-    
+    return { token };
+  })
+  .get(
+    "/",
+    async ({ query }) => {
+      const page = query.page ?? 1;
+      const size = query.size ?? 10;
+      return getUsers(page, size);
+    },
+    {
+      query: paginationQuery,
+    },
+  )
+  .post(
+    "/",
+    async ({ body, set }) => {
+      const { name, email, password } = body as {
+        name: string;
+        email: string;
+        password: string;
+      };
+      try {
+        await registerUser(name, email, password);
+        return { data: "OK" };
+      } catch (error) {
+        set.status = 400;
+        return { error: (error as Error).message };
+      }
+    },
+    {
+      body: registerSchema,
+    },
+  )
+  .post(
+    "/login",
+    async ({ body, set }) => {
+      const { email, password } = body as { email: string; password: string };
+      try {
+        const token = await loginUser(email, password);
+        return { token };
+      } catch (error) {
+        set.status = 400;
+        return { error: (error as Error).message };
+      }
+    },
+    {
+      body: loginSchema,
+    },
+  )
+  .get("/me", async ({ token, set }) => {
+    if (!token || token === "Unauthorized") {
+      set.status = 401;
+      return { error: "Unauthorized" };
+    }
+
     try {
-      const user = await getCurrentUser(token);
+      const user = await getCurrentUser(token as string);
       return { data: user };
     } catch (error) {
       set.status = 401;
-      return { error: 'Unauthorized' };
+      return { error: "Unauthorized" };
     }
   })
-  .put('/me', async ({ headers, body, set }) => {
-    const authHeader = headers['authorization'];
-    
-    if (!authHeader) {
-      set.status = 401;
-      return { error: 'Unauthorized' };
-    }
-    
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      set.status = 401;
-      return { error: 'Unauthorized' };
-    }
-    
-    const token = parts[1]!;
-    const { name, email } = body as { name: string; email: string };
-    
-    try {
-      await updateCurrentUser(token, name, email);
-      return { data: 'OK' };
-    } catch (error) {
-      const errorMessage = (error as Error).message;
-      if (errorMessage === 'Unauthorized') {
+  .put(
+    "/me",
+    async ({ token, body, set }) => {
+      if (!token || token === "Unauthorized") {
         set.status = 401;
-        return { error: 'Unauthorized' };
+        return { error: "Unauthorized" };
       }
-      set.status = 400;
-      return { error: errorMessage };
-    }
-  }, {
-    body: updateProfileSchema,
-  })
-  .put('/me/password', async ({ headers, body, set }) => {
-    const authHeader = headers['authorization'];
-    
-    if (!authHeader) {
-      set.status = 401;
-      return { error: 'Unauthorized' };
-    }
-    
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      set.status = 401;
-      return { error: 'Unauthorized' };
-    }
-    
-    const token = parts[1]!;
-    const { oldPassword, newPassword } = body as { oldPassword: string; newPassword: string };
-    
-    try {
-      await updatePassword(token, oldPassword, newPassword);
-      return { data: 'OK' };
-    } catch (error) {
-      const errorMessage = (error as Error).message;
-      if (errorMessage === 'Unauthorized') {
+
+      const { name, email } = body as { name: string; email: string };
+
+      try {
+        await updateCurrentUser(token as string, name, email);
+        return { data: "OK" };
+      } catch (error) {
+        const errorMessage = (error as Error).message;
+        if (errorMessage === "Unauthorized") {
+          set.status = 401;
+          return { error: "Unauthorized" };
+        }
+        set.status = 400;
+        return { error: errorMessage };
+      }
+    },
+    {
+      body: updateProfileSchema,
+    },
+  )
+  .put(
+    "/me/password",
+    async ({ token, body, set }) => {
+      if (!token || token === "Unauthorized") {
         set.status = 401;
-        return { error: 'Unauthorized' };
+        return { error: "Unauthorized" };
       }
-      set.status = 400;
-      return { error: errorMessage };
-    }
-  }, {
-    body: updatePasswordSchema,
-  })
-  .get('/:id', async ({ params }) => {
-    const id = Number(params.id);
-    return getUserById(id);
-  })
-  .post('/', async ({ body }) => {
-    const { name, email, password } = body as { name: string; email: string; password: string };
-    try {
-      await registerUser(name, email, password);
-      return { data: 'OK' };
-    } catch (error) {
-      return { error: (error as Error).message };
-    }
-  }, {
-    body: registerSchema,
-  })
-  .post('/login', async ({ body, set }) => {
-    const { email, password } = body as { email: string; password: string };
-    try {
-      const token = await loginUser(email, password);
-      return { token };
-    } catch (error) {
-      set.status = 400;
-      return { error: (error as Error).message };
-    }
-  }, {
-    body: loginSchema,
-  })
-  .delete('/logout', async ({ headers, set }) => {
-    const authHeader = headers['authorization'];
-    
-    if (!authHeader) {
+
+      const { oldPassword, newPassword } = body as {
+        oldPassword: string;
+        newPassword: string;
+      };
+
+      try {
+        await updatePassword(token as string, oldPassword, newPassword);
+        return { data: "OK" };
+      } catch (error) {
+        const errorMessage = (error as Error).message;
+        if (errorMessage === "Unauthorized") {
+          set.status = 401;
+          return { error: "Unauthorized" };
+        }
+        set.status = 400;
+        return { error: errorMessage };
+      }
+    },
+    {
+      body: updatePasswordSchema,
+    },
+  )
+  .delete("/logout", async ({ token, set }) => {
+    if (!token || token === "Unauthorized") {
       set.status = 401;
-      return { error: 'Unauthorized' };
+      return { error: "Unauthorized" };
     }
-    
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      set.status = 401;
-      return { error: 'Unauthorized' };
-    }
-    
-    const token = parts[1]!;
-    
+
     try {
-      await logoutUser(token);
-      return { data: 'OK' };
+      await logoutUser(token as string);
+      return { data: "OK" };
     } catch (error) {
       set.status = 401;
-      return { error: 'Unauthorized' };
+      return { error: "Unauthorized" };
     }
-  })
-  .put('/:id', async ({ params, body }) => {
-    const id = Number(params.id);
-    return updateUser(id, body as { name?: string; email?: string });
-  })
-  .delete('/:id', async ({ params }) => {
-    const id = Number(params.id);
-    return deleteUser(id);
   });
