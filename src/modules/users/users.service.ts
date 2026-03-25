@@ -3,6 +3,13 @@ import { users, sessions } from "./users.schema";
 import { eq, count } from "drizzle-orm";
 import argon2 from "argon2";
 
+/**
+ * Get a paginated list of users.
+ * 
+ * @param page - The page number (1-indexed)
+ * @param size - The number of users per page
+ * @returns Object containing users data array and pagination metadata
+ */
 export async function getUsers(page: number, size: number) {
   const offset = (page - 1) * size;
 
@@ -39,6 +46,15 @@ export async function getUsers(page: number, size: number) {
   };
 }
 
+/**
+ * Register a new user.
+ * 
+ * @param name - The user's name
+ * @param email - The user's email (must be unique)
+ * @param password - The user's plain-text password (will be hashed)
+ * @returns "OK" string if registration is successful
+ * @throws Error if email is already in use
+ */
 export async function registerUser(
   name: string,
   email: string,
@@ -57,12 +73,26 @@ export async function registerUser(
   return "OK";
 }
 
+/**
+ * Create a new session for a user.
+ * 
+ * @param userId - The ID of the user to create a session for
+ * @returns The generated session token
+ */
 export async function createSession(userId: number): Promise<string> {
   const token = crypto.randomUUID();
   await db.insert(sessions).values({ token, userId });
   return token;
 }
 
+/**
+ * Authenticate a user and create a session.
+ * 
+ * @param email - The user's email
+ * @param password - The user's plain-text password
+ * @returns The session token if login is successful
+ * @throws Error if email or password is incorrect
+ */
 export async function loginUser(
   email: string,
   password: string,
@@ -86,6 +116,13 @@ export async function loginUser(
   return createSession(user.id);
 }
 
+/**
+ * Get the current authenticated user based on session token.
+ * 
+ * @param token - The session token from the Authorization header
+ * @returns The user object (without password)
+ * @throws Error if token is invalid or session not found
+ */
 export async function getCurrentUser(token: string) {
   const session = await db
     .select()
@@ -113,6 +150,15 @@ export async function getCurrentUser(token: string) {
   return userRecord[0]!;
 }
 
+/**
+ * Update the current user's profile (name and email).
+ * 
+ * @param token - The session token from the Authorization header
+ * @param name - The new name
+ * @param email - The new email
+ * @returns "OK" if update is successful
+ * @throws Error if token is invalid or email is already in use by another user
+ */
 export async function updateCurrentUser(
   token: string,
   name: string,
@@ -142,6 +188,15 @@ export async function updateCurrentUser(
   return "OK";
 }
 
+/**
+ * Update the current user's password.
+ * 
+ * @param token - The session token from the Authorization header
+ * @param oldPassword - The user's current password
+ * @param newPassword - The new password to set
+ * @returns "OK" if password update is successful
+ * @throws Error if token is invalid or old password is incorrect
+ */
 export async function updatePassword(
   token: string,
   oldPassword: string,
@@ -180,6 +235,13 @@ export async function updatePassword(
   return "OK";
 }
 
+/**
+ * Log out the current user by deleting their session.
+ * 
+ * @param token - The session token from the Authorization header
+ * @returns "OK" if logout is successful
+ * @throws Error if token is invalid or session not found
+ */
 export async function logoutUser(token: string) {
   const session = await db
     .select()
