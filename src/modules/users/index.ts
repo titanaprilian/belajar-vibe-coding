@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
   getUsers,
   registerUser,
@@ -16,21 +16,29 @@ import {
   paginationQuery,
 } from "./users.validation";
 
+const ERROR_UNAUTHORIZED = "Unauthorized";
+
+const extractToken = (headers: Record<string, string | undefined>) => {
+  const authHeader = headers["authorization"];
+
+  if (!authHeader) {
+    throw new Error(ERROR_UNAUTHORIZED);
+  }
+
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    throw new Error(ERROR_UNAUTHORIZED);
+  }
+
+  return parts[1]!;
+};
+
 export const usersRouter = new Elysia({ prefix: "/api/users" })
-  .derive(({ headers, set }) => {
-    const authHeader = headers["authorization"];
-
-    if (!authHeader) {
-      return { error: "Unauthorized" };
+  .onError(({ error, set }) => {
+    if ((error as Error).message === ERROR_UNAUTHORIZED) {
+      set.status = 401;
+      return { error: ERROR_UNAUTHORIZED };
     }
-
-    const parts = authHeader.split(" ");
-    if (parts.length !== 2 || parts[0] !== "Bearer") {
-      return { error: "Unauthorized" };
-    }
-
-    const token = parts[1]!;
-    return { token };
   })
   .get(
     "/",
@@ -79,38 +87,24 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
       body: loginSchema,
     },
   )
-  .get("/me", async ({ token, set }) => {
-    if (!token || token === "Unauthorized") {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
-    try {
-      const user = await getCurrentUser(token as string);
-      return { data: user };
-    } catch (error) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
+  .get("/me", async ({ headers }) => {
+    const token = extractToken(headers);
+    const user = await getCurrentUser(token);
+    return { data: user };
   })
   .put(
     "/me",
-    async ({ token, body, set }) => {
-      if (!token || token === "Unauthorized") {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ headers, body, set }) => {
+      const token = extractToken(headers);
       const { name, email } = body as { name: string; email: string };
 
       try {
-        await updateCurrentUser(token as string, name, email);
+        await updateCurrentUser(token, name, email);
         return { data: "OK" };
       } catch (error) {
         const errorMessage = (error as Error).message;
-        if (errorMessage === "Unauthorized") {
-          set.status = 401;
-          return { error: "Unauthorized" };
+        if (errorMessage === ERROR_UNAUTHORIZED) {
+          throw error;
         }
         set.status = 400;
         return { error: errorMessage };
@@ -122,25 +116,20 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
   )
   .put(
     "/me/password",
-    async ({ token, body, set }) => {
-      if (!token || token === "Unauthorized") {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ headers, body, set }) => {
+      const token = extractToken(headers);
       const { oldPassword, newPassword } = body as {
         oldPassword: string;
         newPassword: string;
       };
 
       try {
-        await updatePassword(token as string, oldPassword, newPassword);
+        await updatePassword(token, oldPassword, newPassword);
         return { data: "OK" };
       } catch (error) {
         const errorMessage = (error as Error).message;
-        if (errorMessage === "Unauthorized") {
-          set.status = 401;
-          return { error: "Unauthorized" };
+        if (errorMessage === ERROR_UNAUTHORIZED) {
+          throw error;
         }
         set.status = 400;
         return { error: errorMessage };
@@ -150,17 +139,8 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
       body: updatePasswordSchema,
     },
   )
-  .delete("/logout", async ({ token, set }) => {
-    if (!token || token === "Unauthorized") {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
-    try {
-      await logoutUser(token as string);
-      return { data: "OK" };
-    } catch (error) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
+  .delete("/logout", async ({ headers }) => {
+    const token = extractToken(headers);
+    await logoutUser(token);
+    return { data: "OK" };
   });
