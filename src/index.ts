@@ -5,7 +5,7 @@ import { env } from 'bun';
 
 const app = new Elysia()
   .use(swagger())
-  .get('/health', () => {
+  .get('/api/health', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   })
   .use(usersRouter)

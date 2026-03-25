@@ -99,6 +99,21 @@ The token is obtained from the login endpoint and maps to a row in the `sessions
 
 ---
 
+### `GET /api/health` — Health Check
+
+Check if the server is running.
+
+**Response `200`**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+---
+
 ### `POST /api/users` — Register
 
 Register a new user.
