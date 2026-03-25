@@ -7,6 +7,8 @@ const app = new Elysia()
   .use(swagger())
   .get('/api/health', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
+  }, {
+    detail: { tags: ['Health'] }
   })
   .use(usersRouter)
   .listen(env.PORT || 3000);

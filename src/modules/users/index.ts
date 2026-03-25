@@ -49,6 +49,7 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       query: paginationQuery,
+      detail: { tags: ["Users"] },
     },
   )
   .post(
@@ -70,6 +71,7 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: registerSchema,
+      detail: { tags: ["Users"] },
     },
   )
   .post(
@@ -86,12 +88,15 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: loginSchema,
+      detail: { tags: ["Users"] },
     },
   )
   .get("/me", async ({ headers }) => {
     const token = extractToken(headers);
     const user = await getCurrentUser(token);
     return { data: user };
+  }, {
+    detail: { tags: ["Users"] },
   })
   .put(
     "/me",
@@ -113,6 +118,7 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: updateProfileSchema,
+      detail: { tags: ["Users"] },
     },
   )
   .put(
@@ -138,10 +144,13 @@ export const usersRouter = new Elysia({ prefix: "/api/users" })
     },
     {
       body: updatePasswordSchema,
+      detail: { tags: ["Users"] },
     },
   )
   .delete("/logout", async ({ headers }) => {
     const token = extractToken(headers);
     await logoutUser(token);
     return { data: "OK" };
+  }, {
+    detail: { tags: ["Users"] },
   });
