@@ -156,3 +156,15 @@ export async function updatePassword(token: string, oldPassword: string, newPass
   
   return 'OK';
 }
+
+export async function logoutUser(token: string) {
+  const session = await db.select().from(sessions).where(eq(sessions.token, token));
+  
+  if (session.length === 0) {
+    throw new Error('Unauthorized');
+  }
+  
+  await db.delete(sessions).where(eq(sessions.token, token));
+  
+  return 'OK';
+}

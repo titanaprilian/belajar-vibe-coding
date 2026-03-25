@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser, getCurrentUser, updateCurrentUser, updatePassword } from './users.service';
+import { getAllUsers, getUsers, getUserById, createUser, updateUser, deleteUser, registerUser, loginUser, getCurrentUser, updateCurrentUser, updatePassword, logoutUser } from './users.service';
 
 const registerSchema = t.Object({
   name: t.String({ minLength: 1 }),
@@ -149,6 +149,30 @@ export const usersRouter = new Elysia({ prefix: '/api/users' })
     }
   }, {
     body: loginSchema,
+  })
+  .delete('/logout', async ({ headers, set }) => {
+    const authHeader = headers['authorization'];
+    
+    if (!authHeader) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    
+    const token = parts[1]!;
+    
+    try {
+      await logoutUser(token);
+      return { data: 'OK' };
+    } catch (error) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
   })
   .put('/:id', async ({ params, body }) => {
     const id = Number(params.id);
